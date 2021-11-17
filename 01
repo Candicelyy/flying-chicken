@@ -1,0 +1,113 @@
+import pygame
+from pygame.locals import*
+import os
+import random
+
+FPS = 30
+
+screen_width = 400
+screen_height = 650
+game_title = 'Flying Chicken'
+
+pipe_width = 120
+pipe_height = 320   
+
+chicken_width = 90
+chicken_height = 90
+
+speed = 8
+space = 220
+
+score = 0
+
+class Chicken(pygame.sprite.Sprite):
+   def __init__(self, top=0):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('chicken.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (chicken_width, chicken_height))
+        self.rect = self.image.get_rect()
+        self.rect.left = screen_width / 2 - chicken_width
+        self.rect.top = screen_height / 2 - chicken_height - top
+        self.speed = speed
+
+
+   def update(self):
+       self.speed += 1
+       self.rect.top += self.speed
+
+   def fly(self):
+      self.speed = -speed
+
+class Pipe(pygame.sprite.Sprite):
+   def __init__(self, change, left, top):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('pipe.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (pipe_width, pipe_height))
+        self.rect = self.image.get_rect()
+        self.rect.left = left
+
+        if change:
+            self.image = pygame.transform.flip(self.image, False, True)
+            self.rect.top = - (self.rect.bottom - top)
+        else:
+            self.rect.top = screen_height - top
+
+   def update(self):
+        self.rect.left -= speed
+
+def generate_Pipe(left):
+    top = random.randint(100, 300)
+    pipe = Pipe(False, left, top)
+    pipe_changed = Pipe(True, left, screen_height - top -space )
+    return pipe, pipe_changed
+
+
+if __name__ == '__main__':
+        pygame.init()
+        game_font = pygame.font.SysFont('ubuntu', 20, True)
+        screen = pygame.display.set_mode((screen_width,screen_height))
+        pygame.display.set_caption(game_title)
+
+        background = pygame.image.load('sky.png')
+        background = pygame.transform.scale(background,(screen_width, screen_height))
+
+        chicken_group = pygame.sprite.Group()
+        chicken = Chicken()
+        chicken_group.add(chicken)
+
+        pipe_group = pygame.sprite.Group()
+        pipes1 = generate_Pipe(300)
+        pipe_group.add(pipes1[0])
+        pipe_group.add(pipes1[1])
+
+        clock = pygame.time.Clock()
+
+        while True:
+
+            clock.tick(30)
+            screen.blit(background, (0, 0))
+            screen.blit(game_font.render('score:%d' % score, True, (255, 255, 255)), (20, 20))
+
+
+            for event in pygame.event.get():
+               if event.type == KEYDOWN:
+                  if event.key == K_SPACE:
+                      chicken.fly()
+
+            if pipe_group.sprites()[0].rect.left < -(screen_width):
+                pipe_group.remove(pipe_group.sprites())
+                pipes = generate_Pipe(screen_width)
+                pipe_group.add(pipes[0])
+                pipe_group.add(pipes[1])
+                score += 1
+
+
+            chicken_group.update()
+            chicken_group.draw(screen)
+            pipe_group.update()
+            pipe_group.draw(screen)
+            pygame.display.update()
+
+            if pygame.sprite.groupcollide(chicken_group, pipe_group, False,False):
+                pygame.quit()
+                quit()
